@@ -7,3 +7,5 @@ password="your password"
 host="your host"
 port="your port"
 database="your database name"
+-------------------------------------------------------------
+The run npm run start
