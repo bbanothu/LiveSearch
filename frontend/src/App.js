@@ -7,7 +7,7 @@ import Records from './components/Records';
 function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [records, setRecords] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalEntries, setTotalEntries] = useState(0);
 
@@ -21,7 +21,11 @@ function App() {
       const { totalEntries, records } = response.data;
       setRecords(records);
       setTotalEntries(totalEntries);
-      setTotalPages(Math.ceil(totalEntries / 30));
+      if(totalEntries === 0){
+        setTotalPages(1);
+      } else {
+        setTotalPages(Math.ceil(totalEntries / 30));
+      }
     } catch (error) {
       console.error('Error:', error);
     }

@@ -2,53 +2,61 @@ const { pool } = require('../db');
 
 const search = async (req, res) => {
     try {
-        const searchTerm = req.query.term;
-        const page = req.query.page || 1;
-        const pageSize = 30;
+      const searchTerm = req.query.term;
+      const page = req.query.page || 1;
+      const pageSize = 30;
+  
+      // Query to get the total amount of matches
+      const countQuery = `
+        SELECT COUNT(*) AS total_count
+        FROM person
+        WHERE first_name ILIKE '%' || $1 || '%'
+          OR last_name ILIKE '%' || $1 || '%'
+          OR (age::text ILIKE '%' || $1 || '%' OR age::integer::text ILIKE '%' || $1 || '%')
+          OR (ssn::text ILIKE '%' || $1 || '%' OR ssn::integer::text ILIKE '%' || $1 || '%')
+          OR (CONCAT_WS(' ', first_name, last_name) ILIKE '%' || $1 || '%')
+          OR (CONCAT_WS(' ', last_name, first_name) ILIKE '%' || $1 || '%');
 
-        // Query to the get the total amount of matches
-        const countQuery = `
-      SELECT COUNT(*) AS total_count
-      FROM person
-      WHERE first_name ILIKE '%' || $1 || '%'
-        OR last_name ILIKE '%' || $1 || '%'
-        OR (age::text ILIKE '%' || $1 || '%' OR age::integer::text ILIKE '%' || $1 || '%')
-        OR (ssn::text ILIKE '%' || $1 || '%' OR ssn::integer::text ILIKE '%' || $1 || '%');
-    `;
-        const countResult = await pool.query(countQuery, [searchTerm]);
-        const totalCount = countResult.rows[0].total_count;
+      `;
+      const countResult = await pool.query(countQuery, [searchTerm]);
 
-        // Query to get records 30 at a time
-        const query = `
-      SELECT
-        first_name,
-        last_name,
-        age,
-        ssn,
-        address_street,
-        address_city,
-        address_state,
-        address_zip
-      FROM
-        person
-      JOIN
-        address ON person.personid = address.personid
-      WHERE
-        first_name ILIKE '%' || $1 || '%'
-        OR last_name ILIKE '%' || $1 || '%'
-        OR (age::text ILIKE '%' || $1 || '%' OR age::integer::text ILIKE '%' || $1 || '%')
-        OR (ssn::text ILIKE '%' || $1 || '%' OR ssn::integer::text ILIKE '%' || $1 || '%')
-      LIMIT $2
-      OFFSET $3;
-    `;
-
-        const offset = (page - 1) * pageSize;
-        const result = await pool.query(query, [searchTerm, pageSize, offset]);
-        return res.status(200).json({ totalEntries: totalCount, records: result.rows });
+      console.log(countResult);
+      const totalCount = countResult.rows[0].total_count;
+  
+      // Query to get records 30 at a time
+      const query = `
+        SELECT
+          first_name,
+          last_name,
+          age,
+          ssn,
+          address_street,
+          address_city,
+          address_state,
+          address_zip
+        FROM
+          person
+        JOIN
+          address ON person.personid = address.personid
+        WHERE
+          first_name ILIKE '%' || $1 || '%'
+          OR last_name ILIKE '%' || $1 || '%'
+          OR (age::text ILIKE '%' || $1 || '%' OR age::integer::text ILIKE '%' || $1 || '%')
+          OR (ssn::text ILIKE '%' || $1 || '%' OR ssn::integer::text ILIKE '%' || $1 || '%')
+          OR (CONCAT_WS(' ', first_name, last_name) ILIKE '%' || $1 || '%')
+          OR (CONCAT_WS(' ', last_name, first_name) ILIKE '%' || $1 || '%')
+        LIMIT $2
+        OFFSET $3;
+      `;
+  
+      const offset = (page - 1) * pageSize;
+      const result = await pool.query(query, [searchTerm, pageSize, offset]);
+      return res.status(200).json({ totalEntries: totalCount, records: result.rows });
     } catch (error) {
-        return res.status(500).json({ error: 'An error occurred while searching the database.' });
+      return res.status(500).json({ error: 'An error occurred while searching the database.' });
     }
-};
+  };
+  
 
 module.exports = {
     search,
